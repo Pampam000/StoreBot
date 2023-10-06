@@ -1,0 +1,38 @@
+version: "3.9"
+
+volumes:
+  pg_data:
+
+services:
+  webhook:
+    container_name: webhook
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    ports:
+      - "${WEBHOOK_PORT}:${WEBHOOK_PORT}"
+    command: uvicorn app.main:app --host 0.0.0.0 --port ${WEBHOOK_PORT} --reload
+
+    volumes:
+      - ./app:/src/app
+    depends_on:
+      - db
+    links:
+      - db
+
+  db:
+    container_name: db
+    image: postgres:15-alpine
+    env_file:
+      - .env
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: on-failure
