@@ -2,43 +2,27 @@ from contextlib import asynccontextmanager
 
 from aiogram import Bot
 from aiogram import Dispatcher
-from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.types import Update
 from fastapi import FastAPI
 
-from app import config as cf, crud
+from app import crud
+from app.bot import create_webhook_bot, bots, close_bots
+from app.api.bot_types.routes import router as bot_types_api_router
+from app.api.bots.routes import router as bots_api_router
 from app.handlers import router
-
-bots = {}
 
 dp = Dispatcher()
 dp.include_router(router)
 
 
-def create_bot(token: str) -> Bot:
-    return Bot(token=token, session=AiohttpSession(timeout=5))
-
-
 async def on_startup():
     tokens: list[str] = await crud.get_tokens()
-
     for token in tokens:
-        bot: Bot = create_bot(token=token)
-        token_path = f"/{token}"
-        webhook_url = cf.WEBHOOK_HOST + cf.WEBHOOK_PATH + token_path
-        webhook_info = await bot.get_webhook_info()
-
-        if webhook_info.url != webhook_url:
-            await bot.set_webhook(url=webhook_url, drop_pending_updates=True)
-
-        bots[token] = bot
+        await create_webhook_bot(token=token)
 
 
 async def on_shutdown():
-    for token in bots:
-        bot: Bot = bots[token]
-        await bot.delete_webhook()
-        await bot.session.close()
+    await close_bots()
 
 
 @asynccontextmanager
@@ -49,10 +33,12 @@ async def lifespan(_):
 
 
 app = FastAPI(lifespan=lifespan)
+app.include_router(bot_types_api_router)
+app.include_router(bots_api_router)
 
 
 @app.post('/webhook/{token}', include_in_schema=False)
 async def bot_webhook(update: dict, token: str):
     update = Update(**update)
-    bot: Bot = bots.get(token)
-    await dp.feed_update(bot=bot, update=update)
+    _bot: Bot = bots.get(token)
+    await dp.feed_update(bot=_bot, update=update)
