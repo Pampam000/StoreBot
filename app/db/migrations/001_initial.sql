@@ -13,33 +13,50 @@ CREATE TABLE IF NOT EXISTS bot_bots (
     FOREIGN KEY (type) REFERENCES bot_types(type)
     );
 
-CREATE TABLE IF NOT EXISTS bot_state_groups (
-    name VARCHAR(50) PRIMARY KEY
-    );
 
-CREATE TABLE IF NOT EXISTS bot_states (
+CREATE TABLE IF NOT EXISTS bot_states(
     name VARCHAR(50) PRIMARY KEY,
-    bot_token VARCHAR(100) NOT NULL,
-    state_group_name VARCHAR(50) NOT NULL,
-    message TEXT,
-    priority SMALLINT,
-
-    FOREIGN KEY (state_group_name) REFERENCES bot_state_groups(name),
-    FOREIGN KEY (bot_token) REFERENCES bot_bots(token)
+    priority SMALLINT DEFAULT 1 NOT NULL
     );
+
+------------------------------------------------------
+CREATE TABLE IF NOT EXISTS bot_message_groups(
+    id SERIAL PRIMARY KEY,
+    state_name VARCHAR(50) UNIQUE NOT NULL,
+
+    FOREIGN KEY (state_name) REFERENCES bot_states(name)
+    );
+
+CREATE TABLE IF NOT EXISTS bot_messages(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    text TEXT NOT NULL,
+    message_group_id INT NOT NULL,
+
+    FOREIGN KEY (message_group_id) REFERENCES bot_message_groups(id)
+    );
+
+CREATE TABLE IF NOT EXISTS bot_keyboard_types(
+    type VARCHAR(10) PRIMARY KEY
+    );
+
+CREATE TABLE IF NOT EXISTS bot_keyboards(
+    id SERIAL PRIMARY KEY,
+    type VARCHAR(10) NOT NULL,
+    message_id INT,
+    state_name VARCHAR(50),
+
+    FOREIGN KEY (message_id) REFERENCES bot_messages(id),
+    FOREIGN KEY (type) REFERENCES bot_keyboard_types(type),
+    FOREIGN KEY (state_name) REFERENCES bot_states(name)
+    );
+
 
 CREATE TABLE IF NOT EXISTS bot_buttons (
-    id BIGSERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL,
+    text VARCHAR(50) NOT NULL,
+    keyboard_id INT NOT NULL,
+
+    FOREIGN KEY (keyboard_id) REFERENCES bot_keyboards(id)
     );
-
-CREATE TABLE IF NOT EXISTS bot_bots_states_buttons (
-    id BIGSERIAL PRIMARY KEY,
-    state_name VARCHAR(50) NOT NULL,
-    button_id BIGINT NOT NULL,
-    bot_token VARCHAR(100) NOT NULL,
-
-    FOREIGN KEY (state_name) REFERENCES bot_states(name),
-    FOREIGN KEY (button_id) REFERENCES bot_buttons(id),
-    FOREIGN KEY (bot_token) REFERENCES bot_bots(token)
-);
