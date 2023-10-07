@@ -1,7 +1,7 @@
 from asyncpg import Connection, Record, UniqueViolationError
 
 from app.api.bot_types.schemas import TypeSchema
-from app.db import with_connection
+from app.db.db import with_connection
 
 
 @with_connection

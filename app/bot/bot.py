@@ -13,6 +13,7 @@ async def create_webhook_bot(token: str) -> str:
         bot = Bot(token=token, session=AiohttpSession(timeout=5))
         await set_webhook(bot=bot)
         bots[bot.token] = bot
+
     except (TokenValidationError, TelegramAPIError) as e:
         return str(e)
 
@@ -27,8 +28,9 @@ async def close_bot(token: str):
     _bot: Bot = bots[token]
     await _bot.delete_webhook()
     await _bot.session.close()
+    bots.pop(token)
 
 
 async def close_bots():
-    for token in bots:
+    for token in bots.copy():
         await close_bot(token=token)

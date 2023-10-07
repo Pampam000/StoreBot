@@ -5,17 +5,21 @@ from aiogram import Dispatcher
 from aiogram.types import Update
 from fastapi import FastAPI
 
-from app import crud
-from app.bot import create_webhook_bot, bots, close_bots
 from app.api.bot_types.routes import router as bot_types_api_router
 from app.api.bots.routes import router as bots_api_router
-from app.handlers import router
+from app.bot import crud
+from app.bot.bot import create_webhook_bot, bots, close_bots
+# from app.bot.handlers import router
+from app.bot.register.handlers import router
+from app.db.db import make_migrations
 
 dp = Dispatcher()
 dp.include_router(router)
 
 
 async def on_startup():
+    await make_migrations()
+
     tokens: list[str] = await crud.get_tokens()
     for token in tokens:
         await create_webhook_bot(token=token)

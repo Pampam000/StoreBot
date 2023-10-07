@@ -1,6 +1,6 @@
 from asyncpg import Connection, Record
 
-from app.db import with_connection
+from app.db.db import with_connection
 
 
 @with_connection

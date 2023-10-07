@@ -1,7 +1,6 @@
-from asyncpg import Connection, Record, ForeignKeyViolationError, \
-    UniqueViolationError
+from asyncpg import Connection, Record, ForeignKeyViolationError
 
-from app.db import with_connection
+from app.db.db import with_connection
 from .schemas import BotSchema
 
 

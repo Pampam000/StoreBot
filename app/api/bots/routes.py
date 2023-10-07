@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from app.bot import create_webhook_bot, bots, close_bot
+from app.bot.bot import create_webhook_bot, bots, close_bot
 from . import crud
 from .schemas import BotSchema
 
