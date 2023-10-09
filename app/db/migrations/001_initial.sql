@@ -29,10 +29,11 @@ CREATE TABLE IF NOT EXISTS bot_message_groups(
 
 CREATE TABLE IF NOT EXISTS bot_messages(
     id SERIAL PRIMARY KEY,
-    name VARCHAR(50) NOT NULL,
     text TEXT NOT NULL,
+    priority SMALLINT NOT NULL,
     message_group_id INT NOT NULL,
 
+    UNIQUE (priority, message_group_id),
     FOREIGN KEY (message_group_id) REFERENCES bot_message_groups(id)
     );
 
@@ -46,8 +47,8 @@ CREATE TABLE IF NOT EXISTS bot_keyboards(
     message_id INT,
     state_name VARCHAR(50),
 
-    FOREIGN KEY (message_id) REFERENCES bot_messages(id),
     FOREIGN KEY (type) REFERENCES bot_keyboard_types(type),
+    FOREIGN KEY (message_id) REFERENCES bot_messages(id),
     FOREIGN KEY (state_name) REFERENCES bot_states(name)
     );
 

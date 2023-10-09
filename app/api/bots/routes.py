@@ -8,6 +8,11 @@ router = APIRouter(prefix='/bot',
                    tags=['bot'])
 
 
+@router.get('/types')
+async def get_types():
+    return await crud.get_types()
+
+
 @router.get('/')
 async def get_bots():
     return await crud.get_bots()

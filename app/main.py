@@ -5,8 +5,8 @@ from aiogram import Dispatcher
 from aiogram.types import Update
 from fastapi import FastAPI
 
-from app.api.bot_types.routes import router as bot_types_api_router
 from app.api.bots.routes import router as bots_api_router
+from app.api.messages.routes import router as messages_api_router, buttons_router
 from app.bot import crud
 from app.bot.bot import create_webhook_bot, bots, close_bots
 # from app.bot.handlers import router
@@ -37,9 +37,10 @@ async def lifespan(_):
 
 
 app = FastAPI(lifespan=lifespan)
-app.include_router(bot_types_api_router)
-app.include_router(bots_api_router)
 
+app.include_router(bots_api_router)
+app.include_router(messages_api_router)
+app.include_router(buttons_router)
 
 @app.post('/webhook/{token}', include_in_schema=False)
 async def bot_webhook(update: dict, token: str):

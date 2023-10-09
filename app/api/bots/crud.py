@@ -5,6 +5,11 @@ from .schemas import BotSchema
 
 
 @with_connection
+async def get_types(conn: Connection) -> list[Record]:
+    return await conn.fetch("SELECT type FROM bot_types")
+
+
+@with_connection
 async def get_bots(conn: Connection) -> list[Record]:
     bots: list[Record] = \
         await conn.fetch("SELECT token, type FROM bot_bots")

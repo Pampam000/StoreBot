@@ -21,7 +21,8 @@ async def create_webhook_bot(token: str) -> str:
 async def set_webhook(bot: Bot):
     token_path = f"/{bot.token}"
     webhook_url = cf.WEBHOOK_HOST + cf.WEBHOOK_PATH + token_path
-    await bot.set_webhook(url=webhook_url, drop_pending_updates=True)
+    await bot.set_webhook(url=webhook_url, drop_pending_updates=True,
+                          allowed_updates=['message',  'callback_query'])
 
 
 async def close_bot(token: str):
