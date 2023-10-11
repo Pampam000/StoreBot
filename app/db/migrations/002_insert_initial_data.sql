@@ -16,14 +16,25 @@ INSERT INTO bot_states (name) VALUES
 ('Register:referral_code:correct'),
 
 ('Location:start'),
-('Location:country'),
-('Location:federal_region'),
-('Location:region'),
-('Location:city'),
-('Location:district'),
-('Location:micro_district'),
-('Location:micro_district:success');
 
+('Location:country'),
+('Location:country:not_found'),
+
+('Location:federal_region'),
+('Location:federal_region:not_found'),
+
+('Location:region'),
+('Location:region:not_found'),
+
+('Location:city'),
+('Location:city:not_found'),
+
+('Location:district'),
+('Location:district:not_found'),
+
+('Location:micro_district'),
+('Location:micro_district:not_found'),
+('Location:micro_district:success');
 
 
 INSERT INTO bot_keyboard_types (type)
@@ -43,12 +54,24 @@ INSERT INTO bot_message_groups (state_name) VALUES
 ('Register:referral_code:correct'),
 
 ('Location:start'),
+
 ('Location:country'),
+('Location:country:not_found'),
+
 ('Location:federal_region'),
+('Location:federal_region:not_found'),
+
 ('Location:region'),
+('Location:region:not_found'),
+
 ('Location:city'),
+('Location:city:not_found'),
+
 ('Location:district'),
+('Location:district:not_found'),
+
 ('Location:micro_district'),
+('Location:micro_district:not_found'),
 ('Location:micro_district:success');
 
 INSERT INTO bot_messages (text, priority, message_group_id) VALUES
@@ -77,19 +100,32 @@ INSERT INTO bot_messages (text, priority, message_group_id) VALUES
 ('Реферальный код успешно активирован!', 1, 8),
 --16
 ('Укажите страну', 1, 9),
---17
-('Укажите федеральный регион', 1, 10),
+--('Или введите вручную:', 2, 9),
+('Такой страны нет', 1, 10),
 --18
-('укажите область', 1, 11),
---19
-('Укажите город', 1, 12),
+('Укажите федеральный регион', 1, 11),
+--('Или введите вручную:', 2, 10),
+('Такого региона нет', 1, 12),
 --20
-('Укажите район', 1, 13),
---21
-('Укажите микрорайон', 1, 14),
+('укажите область', 1, 13),
+--('Или введите вручную:', 2, 11),
+('Такой области нет', 1, 14),
 --22
-('Вы успешно установили локацию', 1, 15);
---23
+('Укажите город', 1, 15),
+--('Или введите вручную:', 2, 12),
+('Такого города нет', 1, 16),
+--24
+('Укажите район', 1, 17),
+--('Или введите вручную:', 2, 13),
+('Такого района нет', 1, 18),
+--26
+('Укажите микрорайон', 1, 19),
+--('Или введите вручную:', 2, 14),
+('Такого микрорайона нет', 1, 20),
+--28
+('Вы успешно установили локацию', 1, 21);
+--('Или введите вручную:', 2, 15),;
+--30
 
 INSERT INTO bot_keyboards (type, message_id, state_name) VALUES
 ('inline', 9, null),
@@ -102,6 +138,6 @@ INSERT INTO bot_buttons (name, text, keyboard_id) VALUES
 ('location', 'location', 1),
 ('referral code', 'referral code', 2),
 ('to catalog', 'to catalog', 3),
-('save', 'save', 4),
-('forward', 'forward', 4),
-('backward', 'backward', 4);
+('save', 'save', 4);
+--('forward', 'forward', 4),
+--('backward', 'backward', 4);
