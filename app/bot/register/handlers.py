@@ -1,12 +1,12 @@
 from aiogram import Router, F
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandStart, Filter, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.methods import SendMessage
 from aiogram.types import Message, CallbackQuery
 from asyncpg import Record
 
 from app.bot import crud, keyboards
-from app.bot.register.states import Register
+from app.bot.register.states import Register, Location
 
 router = Router()
 
@@ -18,7 +18,7 @@ async def start(message: Message, state: FSMContext):
                                       with_inline_kb=False,
                                       with_reply_kb=False)
 
-    await state.set_state(Register.enter_password)
+    await state.set_state(Register.password)
 
     delete_list: list[Message | SendMessage] = \
         await add_messages_to_delete_list(user_message=message,
@@ -27,7 +27,7 @@ async def start(message: Message, state: FSMContext):
     await state.update_data(count=0, delete_list=delete_list)
 
 
-@router.message(F.text, Register.enter_password)
+@router.message(F.text, Register.password)
 async def enter_password(message: Message, state: FSMContext):
     await delete_messages(state=state)
 
@@ -56,7 +56,6 @@ async def enter_password(message: Message, state: FSMContext):
         await message.answer(msg['text'], reply_markup=kb)
 
     await state.set_state(Register.choose_option)
-    print(await state.get_state())
 
 
 @router.callback_query(Register.choose_option, F.data == 'referral code')
@@ -64,18 +63,18 @@ async def begin_enter_referral_code(callback: CallbackQuery,
                                     state: FSMContext):
     state_name: str = await state.get_state()
     state_name += ':referral_code'
-    messages, _, __ = \
+    messages, _, reply_kbs = \
         await crud.get_state_messages(state_name=state_name,
                                       with_inline_kb=False,
                                       with_reply_kb=False)
     for msg in messages:
         await callback.message.answer(msg['text'])
 
-    await state.set_state(Register.enter_referral_code)
+    await state.set_state(Register.referral_code)
     await callback.answer()
 
 
-@router.message(Register.enter_referral_code, F.text)
+@router.message(Register.referral_code, F.text)
 async def enter_referral_code(message: Message, state: FSMContext):
     code: str = message.text
 
@@ -105,9 +104,135 @@ async def enter_referral_code(message: Message, state: FSMContext):
     await state.clear()
 
 
-@router.callback_query(Register.choose_option, F.data == 'locality')
+@router.callback_query(Register.choose_option, F.data == 'location')
 async def begin_enter_locality(callback: CallbackQuery, state: FSMContext):
-    await callback.answer('Логика не прописана', show_alert=True)
+    await state.set_data({})
+    await state.set_state(Location.country)
+    state_name = 'Location:start'
+
+    messages, _, reply_buttons = \
+        await crud.get_state_messages(state_name=state_name,
+                                      with_inline_kb=False,
+                                      with_reply_kb=True)
+
+    for num, msg in enumerate(messages):
+        kb = None
+        if num == 0:
+            buttons: list[str] = [x['text'] for x in reply_buttons]
+            kb = keyboards.create_reply_keyboard(buttons=buttons)
+
+        await callback.message.answer(msg['text'], reply_markup=kb)
+
+    await callback.answer()
+
+
+class ButtonFilter(Filter):
+    def __init__(self, button: str):
+        self.button = button
+
+    async def __call__(self, message: Message) -> bool:
+        text: str = await crud.get_menu_button_by_name(name=self.button)
+        return message.text == text
+
+
+@router.message(ButtonFilter('save'), StateFilter(Location))
+async def save(message: Message, state: FSMContext):
+    await state.clear()
+
+
+@router.message(Location.country, F.text)
+async def enter_country(message: Message, state: FSMContext):
+    country = message.text
+    await state.update_data(country=country)
+
+    state_name = await state.get_state()
+    await state.set_state(Location.federal_region)
+    messages, _, __ = \
+        await crud.get_state_messages(state_name=state_name,
+                                      with_inline_kb=False,
+                                      with_reply_kb=False)
+    for msg in messages:
+        await message.answer(msg['text'])
+
+
+@router.message(Location.federal_region, F.text)
+async def enter_federal_region(message: Message, state: FSMContext):
+    federal_region = message.text
+    await state.update_data(federal_region=federal_region)
+
+    state_name = await state.get_state()
+    await state.set_state(Location.region)
+    messages, _, __ = \
+        await crud.get_state_messages(state_name=state_name,
+                                      with_inline_kb=False,
+                                      with_reply_kb=False)
+    for msg in messages:
+        await message.answer(msg['text'])
+
+
+@router.message(Location.region, F.text)
+async def enter_region(message: Message, state: FSMContext):
+    region = message.text
+    await state.update_data(region=region)
+
+    state_name = await state.get_state()
+    await state.set_state(Location.city)
+    messages, _, __ = \
+        await crud.get_state_messages(state_name=state_name,
+                                      with_inline_kb=False,
+                                      with_reply_kb=False)
+    for msg in messages:
+        await message.answer(msg['text'])
+
+
+@router.message(Location.city, F.text)
+async def enter_city(message: Message, state: FSMContext):
+    city = message.text
+    await state.update_data(city=city)
+
+    state_name = await state.get_state()
+    await state.set_state(Location.district)
+    messages, _, __ = \
+        await crud.get_state_messages(state_name=state_name,
+                                      with_inline_kb=False,
+                                      with_reply_kb=False)
+    for msg in messages:
+        await message.answer(msg['text'])
+
+
+@router.message(Location.district, F.text)
+async def enter_district(message: Message, state: FSMContext):
+    district = message.text
+    await state.update_data(district=district)
+
+    state_name = await state.get_state()
+    await state.set_state(Location.micro_district)
+    messages, _, __ = \
+        await crud.get_state_messages(state_name=state_name,
+                                      with_inline_kb=False,
+                                      with_reply_kb=False)
+    for msg in messages:
+        await message.answer(msg['text'])
+
+
+@router.message(Location.micro_district, F.text)
+async def enter_micro_district(message: Message, state: FSMContext):
+    micro_district = message.text
+
+    await state.update_data(micro_district=micro_district)
+
+    state_name = await state.get_state()
+    state_name += ':success'
+
+    messages, _, __ = \
+        await crud.get_state_messages(state_name=state_name,
+                                      with_inline_kb=False,
+                                      with_reply_kb=False)
+
+    for msg in messages:
+        await message.answer(msg['text'])
+
+    # await message.answer(str(await state.get_data()))
     await state.clear()
 
 

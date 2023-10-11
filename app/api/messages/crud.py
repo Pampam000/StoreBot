@@ -4,9 +4,14 @@ from app.db.db import with_connection
 from .schemas import UpdateOrder, AddMessageSchema
 
 
+"""
+, bmg.id as message_group_id, bk.id as keyboard_id
+LEFT JOIN bot_message_groups bmg ON bs.name = bmg.state_name
+        LEFT JOIN bot_keyboards bk ON bs.name = bk.state_name
+        """
 @with_connection
 async def get_states(conn: Connection) -> list[Record]:
-    return await conn.fetch('SELECT * FROM bot_states')
+    return await conn.fetch("""SELECT bs.* FROM bot_states bs""")
 
 
 @with_connection
@@ -122,3 +127,16 @@ async def update_button(conn: Connection,
     return await conn.fetchrow(
         "UPDATE bot_buttons SET text = $1 WHERE id = $2 RETURNING *",
         text, button_id)
+
+
+@with_connection
+async def get_menu_buttons(conn:Connection,
+                           state_name: str):
+    return await conn.fetch(
+        """
+        SELECT bb.* FROM bot_buttons bb
+        JOIN bot_keyboards bk ON bb.keyboard_id = bk.id
+        WHERE bk.state_name = $1
+        """,
+        state_name
+    )

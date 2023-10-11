@@ -5,17 +5,25 @@ VALUES ('general'), ('individual'), ('list'), ('distributor'),
 INSERT INTO bot_states (name) VALUES
 ('Register:start'),
 
-('Register:enter_password:incorrect_3_times'),
-('Register:enter_password:incorrect'),
-('Register:enter_password:correct'),
+('Register:password:incorrect_3_times'),
+('Register:password:incorrect'),
+('Register:password:correct'),
 
 ('Register:choose_option:referral_code'),
 
-('Register:enter_referral_code:incorrect'),
+('Register:referral_code:incorrect'),
+('Register:referral_code:used'),
+('Register:referral_code:correct'),
 
-('Register:enter_referral_code:used'),
+('Location:start'),
+('Location:country'),
+('Location:federal_region'),
+('Location:region'),
+('Location:city'),
+('Location:district'),
+('Location:micro_district'),
+('Location:micro_district:success');
 
-('Register:enter_referral_code:correct');
 
 
 INSERT INTO bot_keyboard_types (type)
@@ -24,19 +32,24 @@ VALUES ('reply'), ('inline');
 INSERT INTO bot_message_groups (state_name) VALUES
 ('Register:start'),
 
-('Register:enter_password:incorrect_3_times'),
-('Register:enter_password:incorrect'),
-('Register:enter_password:correct'),
+('Register:password:incorrect_3_times'),
+('Register:password:incorrect'),
+('Register:password:correct'),
 
 ('Register:choose_option:referral_code'),
 
-('Register:enter_referral_code:incorrect'),
+('Register:referral_code:incorrect'),
+('Register:referral_code:used'),
+('Register:referral_code:correct'),
 
-('Register:enter_referral_code:used'),
-
-('Register:enter_referral_code:correct');
-
-
+('Location:start'),
+('Location:country'),
+('Location:federal_region'),
+('Location:region'),
+('Location:city'),
+('Location:district'),
+('Location:micro_district'),
+('Location:micro_district:success');
 
 INSERT INTO bot_messages (text, priority, message_group_id) VALUES
 ('Здравствуйте!', 1, 1),
@@ -61,16 +74,34 @@ INSERT INTO bot_messages (text, priority, message_group_id) VALUES
 ('Введённый вами реферальный код уже использовался.', 1, 7),
 ('Введите другой код', 2, 7),
 --15
-('Реферальный код успешно активирован!', 1, 8);
+('Реферальный код успешно активирован!', 1, 8),
 --16
+('Укажите страну', 1, 9),
+--17
+('Укажите федеральный регион', 1, 10),
+--18
+('укажите область', 1, 11),
+--19
+('Укажите город', 1, 12),
+--20
+('Укажите район', 1, 13),
+--21
+('Укажите микрорайон', 1, 14),
+--22
+('Вы успешно установили локацию', 1, 15);
+--23
+
 INSERT INTO bot_keyboards (type, message_id, state_name) VALUES
 ('inline', 9, null),
 ('inline', 10, null),
-('inline', 16, null);
+('inline', 16, null),
+('reply', null, 'Location:start');
 
 
 INSERT INTO bot_buttons (name, text, keyboard_id) VALUES
-('locality', 'locality', 1),
---('choose later', 'choose later', 1),
+('location', 'location', 1),
 ('referral code', 'referral code', 2),
-('to catalog', 'to catalog', 3);
+('to catalog', 'to catalog', 3),
+('save', 'save', 4),
+('forward', 'forward', 4),
+('backward', 'backward', 4);

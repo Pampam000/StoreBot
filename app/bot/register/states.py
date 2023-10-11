@@ -2,12 +2,15 @@ from aiogram.fsm.state import StatesGroup, State
 
 
 class Register(StatesGroup):
-    enter_password = State()
+    password = State()
     choose_option = State()
-    enter_referral_code = State()
-    enter_location = State()
+    referral_code = State()
+
+
+class Location(StatesGroup):
     country = State()
     federal_region = State()
     region = State()
     city = State()
-
+    district = State()
+    micro_district = State()

@@ -72,3 +72,10 @@ async def update_button(button_id: int = Path(..., ge=1),
                         text: UpdateButton = Body(...)):
     return await crud.update_button(button_id=button_id,
                                     text=text.text)
+
+
+# @buttons_router.get('/keyboards{keyboard_id}')
+# async def get_menu_buttons(keyboard_id: int = Path(..., ge=1)):
+@buttons_router.get('/buttons')
+async def get_menu_buttons(state_name: str):
+    return await crud.get_menu_buttons(state_name=state_name)

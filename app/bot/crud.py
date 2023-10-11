@@ -5,7 +5,7 @@ from app.db.db import with_connection
 
 @with_connection
 async def get_tokens(conn: Connection) -> list[str]:
-    tokens: list[Record] = await conn.fetch("""SELECT token FROM bot_bots""")
+    tokens: list[Record] = await conn.fetch("SELECT token FROM bot_bots")
     return [token['token'] for token in tokens]
 
 
@@ -60,3 +60,10 @@ async def get_state_messages(
         )
 
     return messages, all_inline_buttons, reply_buttons
+
+
+@with_connection
+async def get_menu_button_by_name(conn: Connection, name: str):
+    return await conn.fetchval('SELECT text FROM bot_buttons where name = $1',
+                               name)
+
