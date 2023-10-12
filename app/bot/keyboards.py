@@ -17,6 +17,7 @@ def create_inline_keyboard(
     for button, callback in zip(buttons, callbacks):
         builder.button(text=button, callback_data=callback)
 
+    builder.adjust(2)
     return builder.as_markup()
 
 def create_reply_keyboard(buttons: list[str]) -> ReplyKeyboardMarkup:
