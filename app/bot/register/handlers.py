@@ -27,7 +27,7 @@ async def start(message: Message, state: FSMContext):
         m = await message.answer(msg['text'])
         delete_list.append(m)
 
-    await state.update_data(count=0, delete_list=delete_list, locations=[])
+    await state.update_data(count=0, delete_list=delete_list, offset=4)
 
 
 @router.message(F.text, Register.password)
@@ -69,7 +69,6 @@ async def enter_password(message: Message, state: FSMContext):
 async def begin_enter_referral_code(callback: CallbackQuery,
                                     state: FSMContext):
     data = await state.get_data()
-    print(data.keys())
     state_name: str = await state.get_state()
     state_name += ':referral_code'
     messages, _, reply_kbs = \
@@ -81,8 +80,6 @@ async def begin_enter_referral_code(callback: CallbackQuery,
         m = await callback.message.answer(msg['text'])
         data['delete_list'].append(m)
 
-    print(222222)
-    print([x.text for x in data['delete_list']])
     await state.update_data(delete_list=data['delete_list'])
     await state.set_state(Register.referral_code)
     await callback.answer()
@@ -138,22 +135,15 @@ async def begin_enter_locality(callback: CallbackQuery, state: FSMContext):
     locations = await main_backend.get_location_list(location="COUNTRY")
     data = {}
 
-    print(messages)
-
     messages: dict[str, list] = get_message_cases(
         messages=messages,
         keys=['inline', 'base'])
 
-    print(messages)
     for country in locations['data']:
         data[str(country['id'])] = country['title']
 
-    print(data)
-
     inline_kb = keyboards.create_inline_keyboard(buttons=data.values(),
                                                  callbacks=data.keys())
-
-    print(inline_kb)
     data = await state.get_data()
     for num, msg in enumerate(messages['inline']):
         kb = None
@@ -193,6 +183,132 @@ async def save(message: Message, state: FSMContext):
     await _save(message=message, state=state)
 
 
+class LenStateDataFilter(Filter):
+
+    def __init__(self, param: str):
+        self.param = param
+
+    async def __call__(self, *args, **kwargs) -> bool:
+        state = kwargs['state']
+        data = await state.get_data()
+        print('loc', len(data[self.param]['data']))
+        print('offset', data['offset'])
+        print(len(data[self.param]['data']) > data['offset'])
+        return len(data[self.param]['data']) > data['offset']
+
+
+class LenFilter(LenStateDataFilter):
+    async def __call__(self, *args, **kwargs) -> bool:
+        state = kwargs['state']
+        data = await state.get_data()
+        print(111111, data['offset'])
+        return data['offset'] >= 8
+
+
+@router.message(ButtonFilter('forward'), StateFilter(Location),
+                LenStateDataFilter('locations'))
+async def forward(message: Message, state: FSMContext):
+    state_data = await state.get_data()
+    state_name = await state.get_state()
+    locations = state_data['locations']
+    states = list(Location.__state_names__)
+    index = states.index(state_name)
+    state_name = states[index - 1]
+    data = {}
+
+    for location in locations['data']:
+        data[str(location['id'])] = location['title']
+
+    buttons = list(data.values())[
+              state_data['offset']:state_data['offset'] + 4]
+    callbacks = list(data.keys())[
+                state_data['offset']:state_data['offset'] + 4]
+
+    inline_kb = keyboards.create_inline_keyboard(buttons=buttons,
+                                                 callbacks=callbacks)
+
+    messages, _, __ = \
+        await crud.get_state_messages(state_name=state_name,
+                                      with_inline_kb=False,
+                                      with_reply_kb=False)
+
+    messages: dict[str, list] = get_message_cases(
+        messages=messages,
+        keys=['not_found', 'inline', 'correct'])
+
+    for num, msg in enumerate(messages['inline']):
+        kb = None
+        if num == len(messages['inline']) - 1:
+            kb = inline_kb
+
+        m = await message.answer(msg['text'], reply_markup=kb)
+        state_data['delete_list'].append(m)
+    for num, msg in enumerate(messages['correct']):
+        m = await message.answer(msg['text'])
+        state_data['delete_list'].append(m)
+    await state.update_data(locations=locations,
+                            offset=state_data['offset'] + 4,
+                            delete_list=state_data['delete_list'])
+
+
+@router.message(ButtonFilter('forward'), StateFilter(Location),
+                ~LenStateDataFilter('locations'))
+async def bad_forward(message: Message, state: FSMContext):
+    await message.answer("Can't forward")
+
+
+@router.message(ButtonFilter('backward'), StateFilter(Location),
+                LenFilter('locations'))
+async def backward(message: Message, state: FSMContext):
+    state_data = await state.get_data()
+    state_name = await state.get_state()
+    locations = state_data['locations']
+    states = list(Location.__state_names__)
+    index = states.index(state_name)
+    state_name = states[index - 1]
+    data = {}
+
+    for location in locations['data']:
+        data[str(location['id'])] = location['title']
+
+    buttons = list(data.values())[
+              state_data['offset'] - 8:state_data['offset'] - 4]
+    callbacks = list(data.keys())[
+                state_data['offset'] - 8:state_data['offset'] - 4]
+
+    inline_kb = keyboards.create_inline_keyboard(buttons=buttons,
+                                                 callbacks=callbacks)
+
+    messages, _, __ = \
+        await crud.get_state_messages(state_name=state_name,
+                                      with_inline_kb=False,
+                                      with_reply_kb=False)
+
+    messages: dict[str, list] = get_message_cases(
+        messages=messages,
+        keys=['not_found', 'inline', 'correct'])
+
+    for num, msg in enumerate(messages['inline']):
+        kb = None
+        if num == len(messages['inline']) - 1:
+            kb = inline_kb
+
+        m = await message.answer(msg['text'], reply_markup=kb)
+        state_data['delete_list'].append(m)
+    for num, msg in enumerate(messages['correct']):
+        m = await message.answer(msg['text'])
+        state_data['delete_list'].append(m)
+    await state.update_data(locations=locations,
+                            offset=state_data['offset'] - 4,
+                            delete_list=state_data['delete_list'])
+
+
+@router.message(ButtonFilter('backward'), StateFilter(Location),
+                ~LenFilter('locations'))
+async def backward(message: Message, state: FSMContext):
+    await message.answer('Can\'t backward')
+
+
 async def _save(message: Message, state: FSMContext):
     async with aiohttp.ClientSession() as session:
         data = await state.get_data()
@@ -209,8 +325,7 @@ async def _save(message: Message, state: FSMContext):
 @router.message(Location.country, F.text)
 async def enter_country(message: Message, state: FSMContext):
     country = message.text
-    await state.update_data(country=country)
-    data = await state.get_data()
+    await state.update_data(country=country, offset=4)
 
     if not await check(message=message, state=state):
         await state.set_state(Location.federal_region)
@@ -219,7 +334,7 @@ async def enter_country(message: Message, state: FSMContext):
 @router.callback_query(Location.country)
 async def enter_country_callback(callback: CallbackQuery, state: FSMContext):
     country_id = callback.data
-    await state.update_data(country_id=country_id)
+    await state.update_data(country_id=country_id, offset=4)
     await check(message=callback.message,
                 state=state,
                 callback_data=callback.data)
@@ -230,7 +345,7 @@ async def enter_country_callback(callback: CallbackQuery, state: FSMContext):
 @router.message(Location.federal_region, F.text)
 async def enter_federal_region(message: Message, state: FSMContext):
     federal_region = message.text
-    await state.update_data(federal_region=federal_region)
+    await state.update_data(federal_region=federal_region, offset=4)
     if not await check(message=message, state=state):
         await state.set_state(Location.region)
 
@@ -239,7 +354,7 @@ async def enter_federal_region(message: Message, state: FSMContext):
 async def enter_federal_region_callback(callback: CallbackQuery,
                                         state: FSMContext):
     federal_region_id = callback.data
-    await state.update_data(federal_region_id=federal_region_id)
+    await state.update_data(federal_region_id=federal_region_id, offset=4)
     await check(message=callback.message,
                 state=state,
                 callback_data=callback.data)
@@ -250,7 +365,7 @@ async def enter_federal_region_callback(callback: CallbackQuery,
 @router.message(Location.region, F.text)
 async def enter_region(message: Message, state: FSMContext):
     region = message.text
-    await state.update_data(region=region)
+    await state.update_data(region=region, offset=4)
     if not await check(message=message, state=state):
         await state.set_state(Location.city)
 
@@ -258,7 +373,8 @@ async def enter_region(message: Message, state: FSMContext):
 @router.callback_query(Location.region)
 async def enter_region_callback(callback: CallbackQuery, state: FSMContext):
     region_id = callback.data
-    await state.update_data(region_id=region_id)
+
+    await state.update_data(region_id=region_id, offset=4)
     await check(message=callback.message,
                 state=state,
                 callback_data=callback.data)
@@ -271,7 +387,7 @@ async def enter_city(message: Message, state: FSMContext):
     city = message.text
     data = await state.get_data()
 
-    await state.update_data(city=city)
+    await state.update_data(city=city, offset=4)
     state_name = await state.get_state()
 
     messages, _, __ = \
@@ -309,7 +425,7 @@ async def enter_city(message: Message, state: FSMContext):
 @router.callback_query(Location.city)
 async def enter_city_callback(callback: CallbackQuery, state: FSMContext):
     city_id = callback.data
-    await state.update_data(city_id=city_id)
+    await state.update_data(city_id=city_id, offset=4)
     data = await state.get_data()
 
     state_name = await state.get_state()
@@ -400,37 +516,22 @@ async def to_catalog(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
-async def add_messages_to_delete_list(
-        user_message: Message,
-        bot_messages: list[SendMessage]) -> list[Message | SendMessage]:
-    delete_list = [user_message]
-    for msg in bot_messages:
-        sent_message: SendMessage = await user_message.answer(msg['text'])
-        delete_list.append(sent_message)
-
-    return delete_list
-
-
 async def delete_messages(state: FSMContext, count: int):
     data = await state.get_data()
     messages: list[Message | SendMessage] = data['delete_list']
 
-    print(count)
-    print(len(messages))
-    print([x.text for x in messages])
     messages_to_remove = []
     for num, m in enumerate(messages.copy()):
 
         if num + count + 1 > len(messages):
             break
-        print(m.text)
+
         await m.delete()
         messages_to_remove.append(m)
 
     for m in messages_to_remove:
         messages.remove(m)
 
-    print(10101010110101010101, [x.text for x in messages])
     await state.update_data(delete_list=messages)
 
 
@@ -526,6 +627,7 @@ async def check(message: Message, state: FSMContext,
         keys=['not_found', 'inline', 'correct'])
 
     state_data = await state.get_data()
+
     locations = state_data['locations']
 
     titles = []
@@ -541,6 +643,8 @@ async def check(message: Message, state: FSMContext,
             for msg in messages['not_found']:
                 m = await message.answer(msg['text'])
                 state_data['delete_list'].append(m)
+                await state.update_data(delete_list=state_data['delete_list'])
+                print(m.text)
             return True
 
         index = titles.index(message.text)
@@ -555,10 +659,14 @@ async def check(message: Message, state: FSMContext,
     for location in locations['data']:
         data[str(location['id'])] = location['title']
 
-    print(data)
+    print('fdsfsdf', state_data['offset'])
+    buttons = list(data.values())[
+              state_data['offset'] - 4:state_data['offset']]
+    callbacks = list(data.keys())[
+                state_data['offset'] - 4:state_data['offset']]
 
-    inline_kb = keyboards.create_inline_keyboard(buttons=data.values(),
-                                                 callbacks=data.keys())
+    inline_kb = keyboards.create_inline_keyboard(buttons=buttons,
+                                                 callbacks=callbacks)
 
     for num, msg in enumerate(messages['inline']):
         kb = None
@@ -571,4 +679,8 @@ async def check(message: Message, state: FSMContext,
         m = await message.answer(msg['text'])
         state_data['delete_list'].append(m)
     await state.update_data(locations=locations,
+                            # offset=4,
                             delete_list=state_data['delete_list'])
+    # data = await state.get_data()
+    # print('check', data['offset'])
+    # await asyncio.sleep(2)
